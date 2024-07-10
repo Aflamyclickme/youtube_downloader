@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Video;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use App\Models\Video;
-use GuzzleHttp\Client;
 
 class VideoController extends Controller
 {
@@ -37,26 +36,18 @@ class VideoController extends Controller
     public function download(Request $request)
     {
         $url = $request->input('url');
-        $quality = $request->input('quality', 'best'); // دریافت کیفیت انتخاب شده توسط کاربر، پیش‌فرض 'best'
 
-        // درخواست برای دریافت اطلاعات ویدیو به صورت JSON
-        $client = new Client();
-        $response = $client->request('GET', "https://api.yt-dlp.com/info?url=$url");
-        $videoInfo = json_decode($response->getBody(), true);
+        // اجرای فرمان دانلود ویدیو با استفاده از shell_exec برای دریافت خروجی دقیق‌تر
+        $command = "yt-dlp -o 'storage/app/public/%(title)s.%(ext)s' $url 2>&1";
+        $output = shell_exec($command);
 
-        // بررسی وجود کیفیت انتخاب شده در لیست کیفیت‌های موجود
-        $availableQualities = array_column($videoInfo['formats'], 'format_id');
-        if (!in_array($quality, $availableQualities)) {
-            return response()->json(['error' => 'Selected quality is not available'], 400);
+        // بررسی خطا
+        if (strpos($output, 'ERROR') !== false) {
+            return response()->json(['error' => 'Failed to download video', 'output' => $output], 500);
         }
 
-        // فرمان دانلود ویدیو با استفاده از yt-dlp برای کیفیت انتخاب شده
-        $command = "yt-dlp -f $quality -o 'storage/app/public/%(title)s.%(ext)s' $url";
-        exec($command, $output, $return_var);
-
-        if ($return_var != 0) {
-            return response()->json(['error' => 'Failed to download video', 'output' => $output, 'return_var' => $return_var], 500);
-        }
+        // بازیابی اطلاعات ویدیو
+        $videoInfo = json_decode(shell_exec("yt-dlp -j $url"), true);
 
         // ذخیره اطلاعات ویدیو در دیتابیس
         $video = new Video();
