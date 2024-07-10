@@ -7,13 +7,19 @@
 <body>
 <div class="container">
     <h1>Download YouTube Video</h1>
-    <form action="/download" method="POST">
+    <form action="{{ route('download') }}" method="POST">
         @csrf
-        <div class="form-group">
-            <label for="url">Video URL:</label>
-            <input type="text" class="form-control" id="url" name="url" required>
-        </div>
-        <button type="submit" class="btn btn-primary">Download</button>
+        <label for="url">Video URL:</label>
+        <input type="text" id="url" name="url" required><br><br>
+
+        <label for="quality">Select Quality:</label>
+        <select name="quality" id="quality">
+            <option value="best">Best</option>
+            <option value="worst">Worst</option>
+            <!-- Add more quality options here if needed -->
+        </select><br><br>
+
+        <button type="submit">Download Video</button>
     </form>
 </div>
 </body>
